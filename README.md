@@ -339,6 +339,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Inspired by [kubectx](https://github.com/ahmetb/kubectx) - Kubernetes context switcher
-- Inspired by [cctx](https://github.com/nwiizo/cctx) - Another context management tool
+- Inspired by [cctx](https://github.com/nwiizo/cctx) - Claude Code context management tool
 - Built with [Cobra](https://github.com/spf13/cobra) CLI framework
 - Interactive features powered by [promptui](https://github.com/manifoldco/promptui)
