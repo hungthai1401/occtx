@@ -269,24 +269,24 @@ go build -o occtx .
 ### Testing
 
 ```bash
-# Run unit tests
-go test ./...
+# Run all tests
+go test -v ./test
 
 # Run tests with coverage
 go test -cover ./...
 
-# Run tests with verbose output
-go test -v ./...
+# Run benchmarks
+go test -bench=. ./test
 
 # Run specific test
-go test -run TestContextManager ./internal/context
+go test -run TestContextFormat ./test
+
+# Race detection
+go test -race ./test
 
 # Lint and vet
 go vet ./...
 go fmt ./...
-
-# Test with race detection
-go test -race ./...
 ```
 
 ### Integration Testing
