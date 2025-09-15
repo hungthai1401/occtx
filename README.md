@@ -28,6 +28,26 @@ cd occtx
 go build -o occtx .
 sudo mv occtx /usr/local/bin/
 ```
+### From binary
+
+Download the appropriate binary for your platform from the [releases](https://github.com/hungthai1401/occtx/releases) page.
+
+Make the binary executable and place it in your PATH:
+
+#### Linux and macOS
+
+```bash
+chmod +x occtx-*
+sudo mv occtx-* /usr/local/bin/occtx
+```
+#### Windows
+
+1. Right-click on 'This PC' or 'My Computer' and select 'Properties'.
+2. Click on 'Advanced system settings'.
+3. Click on 'Environment Variables'.
+4. Under 'System variables', find the 'Path' variable and click 'Edit'.
+5. Click 'New' and add the path to the directory where `occtx.exe` is located.
+6. Click 'OK' to close all dialog boxes.
 
 ### Using Go
 
@@ -342,3 +362,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by [cctx](https://github.com/nwiizo/cctx) - Claude Code context management tool
 - Built with [Cobra](https://github.com/spf13/cobra) CLI framework
 - Interactive features powered by [promptui](https://github.com/manifoldco/promptui)
+
+## Troubleshooting
+
+### macOS: Apple could not verify "occtx" is free of malware
+
+If you encounter the message "Apple could not verify 'occtx' is free of malware that may harm your Mac or compromise your privacy," you can resolve this by running the following command in your terminal:
+
+```bash
+xattr -cr /usr/local/bin/occtx
+```
+
+This command clears the extended attributes that are causing the warning, allowing you to run `occtx` without further issues.
+
+### Windows: SmartScreen Warning
+
+If you encounter a SmartScreen warning when trying to run `occtx`, you can bypass it by following these steps:
+
+1. Right-click on the `occtx` executable.
+2. Select 'Properties'.
+3. In the 'General' tab, look for a security warning message and check the box that says 'Unblock'.
+4. Click 'Apply', then 'OK'.
+
+This will allow you to run `occtx` without further SmartScreen warnings.

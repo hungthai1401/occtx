@@ -219,10 +219,20 @@ jobs:
           - **macOS (Apple Silicon)**: `occtx-macos-aarch64`
           
           Make the binary executable and place it in your PATH:
+
+          #### Linux and macOS
           ```bash
           chmod +x occtx-*
           sudo mv occtx-* /usr/local/bin/occtx
           ```
+
+          #### Windows
+          1. Right-click on 'This PC' or 'My Computer' and select 'Properties'.
+          2. Click on 'Advanced system settings'.
+          3. Click on 'Environment Variables'.
+          4. Under 'System variables', find the 'Path' variable and click 'Edit'.
+          5. Click 'New' and add the path to the directory where `occtx.exe` is located.
+          6. Click 'OK' to close all dialog boxes.
           
           ### Usage
           
