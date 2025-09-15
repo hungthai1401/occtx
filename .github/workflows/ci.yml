@@ -42,12 +42,15 @@ jobs:
 
     - name: Check formatting
       run: |
-        unformatted=$(gofmt -s -l .)
-        if [ -n "$unformatted" ]; then
-          echo "The following files need formatting:"
-          echo "$unformatted"
+        # Check if any files need formatting
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "❌ The following files need formatting:"
+          gofmt -s -l .
+          echo ""
+          echo "Please run: go fmt ./..."
           exit 1
         fi
+        echo "✅ All files are properly formatted"
       shell: bash
 
     - name: Run go vet

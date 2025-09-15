@@ -38,10 +38,11 @@ jobs:
         echo "🔍 Running quality checks..."
         
         # Check formatting
-        unformatted=$(gofmt -s -l .)
-        if [ -n "$unformatted" ]; then
-          echo "❌ Code is not properly formatted:"
-          echo "$unformatted"
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "❌ The following files need formatting:"
+          gofmt -s -l .
+          echo ""
+          echo "Please run: go fmt ./..."
           exit 1
         fi
         echo "✅ Go formatting check passed"
@@ -60,6 +61,7 @@ jobs:
         echo "🔍 Building..."
         go build -v ./...
         echo "✅ Build successful"
+      shell: bash
 
     - name: Calculate version
       id: version
@@ -99,6 +101,7 @@ jobs:
         echo "New version: $NEW_VERSION"
         echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
+      shell: bash
 
     - name: Create and push tag
       run: |
@@ -106,6 +109,7 @@ jobs:
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
         git push origin "${{ steps.version.outputs.tag }}"
+      shell: bash
 
   build:
     name: Build and Release
