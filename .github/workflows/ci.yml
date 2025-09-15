@@ -67,7 +67,15 @@ jobs:
       run: go vet ./...
 
     - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out ./...
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          # On Windows, avoid coverage output issues
+          go test -v -race ./...
+        else
+          # On Unix systems, use coverage
+          go test -v -race -coverprofile=coverage.out ./...
+        fi
+      shell: bash
 
     - name: Build
       run: go build -v ./...

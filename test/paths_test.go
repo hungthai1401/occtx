@@ -3,6 +3,7 @@ package test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hungthai1401/occtx/internal/config"
@@ -206,6 +207,11 @@ func TestPaths_ProjectContextsExist(t *testing.T) {
 }
 
 func TestPaths_DirectoryPermissions(t *testing.T) {
+	// Skip permission tests on Windows as it has different permission model
+	if runtime.GOOS == "windows" {
+		t.Skip("Permission tests not applicable on Windows")
+	}
+
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "occtx-perms-test-*")
 	if err != nil {
