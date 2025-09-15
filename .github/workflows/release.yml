@@ -33,16 +33,24 @@ jobs:
       with:
         go-version: stable
 
+    - name: Configure git for consistent line endings
+      run: |
+        git config core.autocrlf false
+        git config core.eol lf
+      shell: bash
+
     - name: Run quality checks
       run: |
         echo "🔍 Running quality checks..."
         
         # Check formatting
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "❌ The following files need formatting:"
-          gofmt -s -l .
+        gofmt -s -w .
+        if ! git diff --quiet; then
+          echo "❌ Code formatting issues found and fixed:"
+          git diff --name-only
           echo ""
-          echo "Please run: go fmt ./..."
+          echo "Files have been automatically formatted by gofmt"
+          echo "Please commit these formatting changes before release"
           exit 1
         fi
         echo "✅ Go formatting check passed"

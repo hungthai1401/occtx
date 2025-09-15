@@ -40,14 +40,24 @@ jobs:
     - name: Verify dependencies
       run: go mod verify
 
+    - name: Configure git for consistent line endings
+      run: |
+        git config core.autocrlf false
+        git config core.eol lf
+      shell: bash
+
     - name: Check formatting
       run: |
-        # Check if any files need formatting
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "❌ The following files need formatting:"
-          gofmt -s -l .
+        # Run gofmt to format files first
+        gofmt -s -w .
+        
+        # Check if there were any changes
+        if ! git diff --quiet; then
+          echo "❌ Code formatting issues found and fixed:"
+          git diff --name-only
           echo ""
-          echo "Please run: go fmt ./..."
+          echo "Files have been automatically formatted by gofmt"
+          echo "Please commit these formatting changes"
           exit 1
         fi
         echo "✅ All files are properly formatted"
