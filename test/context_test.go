@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hungthai1401/occtx/internal/context"
@@ -46,6 +47,61 @@ func (th *TestHelper) Cleanup() {
 	os.RemoveAll(th.TempDir)
 }
 
+// SetupEnvironment sets up environment variables for cross-platform testing
+func (th *TestHelper) SetupEnvironment() (func(), error) {
+	var oldVars map[string]string = make(map[string]string)
+
+	if runtime.GOOS == "windows" {
+		// On Windows, set USERPROFILE and APPDATA
+		if val := os.Getenv("USERPROFILE"); val != "" {
+			oldVars["USERPROFILE"] = val
+		}
+		if val := os.Getenv("APPDATA"); val != "" {
+			oldVars["APPDATA"] = val
+		}
+		if val := os.Getenv("LOCALAPPDATA"); val != "" {
+			oldVars["LOCALAPPDATA"] = val
+		}
+
+		os.Setenv("USERPROFILE", th.TempDir)
+		os.Setenv("APPDATA", filepath.Join(th.TempDir, "AppData", "Roaming"))
+		os.Setenv("LOCALAPPDATA", filepath.Join(th.TempDir, "AppData", "Local"))
+	} else {
+		// On Unix systems, set HOME
+		if val := os.Getenv("HOME"); val != "" {
+			oldVars["HOME"] = val
+		}
+		os.Setenv("HOME", th.TempDir)
+	}
+
+	// Return cleanup function
+	return func() {
+		if runtime.GOOS == "windows" {
+			if val, ok := oldVars["USERPROFILE"]; ok {
+				os.Setenv("USERPROFILE", val)
+			} else {
+				os.Unsetenv("USERPROFILE")
+			}
+			if val, ok := oldVars["APPDATA"]; ok {
+				os.Setenv("APPDATA", val)
+			} else {
+				os.Unsetenv("APPDATA")
+			}
+			if val, ok := oldVars["LOCALAPPDATA"]; ok {
+				os.Setenv("LOCALAPPDATA", val)
+			} else {
+				os.Unsetenv("LOCALAPPDATA")
+			}
+		} else {
+			if val, ok := oldVars["HOME"]; ok {
+				os.Setenv("HOME", val)
+			} else {
+				os.Unsetenv("HOME")
+			}
+		}
+	}, nil
+}
+
 func (th *TestHelper) CreateSampleConfig() {
 	config := map[string]interface{}{
 		"theme": "default",
@@ -72,19 +128,21 @@ func (th *TestHelper) CreateSampleConfig() {
 }
 
 func (th *TestHelper) CreateManagerWithTempDir() *context.Manager {
-	// Set HOME environment to our temp directory for testing
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		panic("SetupEnvironment failed: " + err.Error())
+	}
 
 	manager, err := context.NewManager(false)
 	if err != nil {
-		// Restore HOME and panic
-		os.Setenv("HOME", oldHome)
+		// Restore environment and panic
+		cleanup()
 		panic("Failed to create manager: " + err.Error())
 	}
 
-	// Restore HOME
-	os.Setenv("HOME", oldHome)
+	// Restore environment
+	cleanup()
 	return manager
 }
 
@@ -172,10 +230,12 @@ func TestManager_CreateContext_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -216,10 +276,12 @@ func TestManager_CreateContextWithFormat_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -259,10 +321,12 @@ func TestManager_ListContexts_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -299,10 +363,12 @@ func TestManager_GetContext_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -333,10 +399,12 @@ func TestManager_GetContext_JSONC_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -367,10 +435,12 @@ func TestManager_DeleteContext_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
@@ -398,10 +468,12 @@ func TestManager_RenameContext_WithMockedPaths(t *testing.T) {
 
 	th.CreateSampleConfig()
 
-	// Set HOME environment to temp directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", th.TempDir)
-	defer os.Setenv("HOME", oldHome)
+	// Setup environment for cross-platform testing
+	cleanup, err := th.SetupEnvironment()
+	if err != nil {
+		t.Fatalf("SetupEnvironment failed: %v", err)
+	}
+	defer cleanup()
 
 	manager, err := context.NewManager(false)
 	if err != nil {
