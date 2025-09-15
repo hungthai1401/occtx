@@ -207,8 +207,6 @@ jobs:
         body: |
           ## occtx ${{ needs.prepare-release.outputs.version }}
           
-          🚀 **Release Type**: ${{ github.event.inputs.release_type }}
-          
           Fast, secure, and intuitive command-line tool for managing multiple opencode configurations.
           
           ### Installation
