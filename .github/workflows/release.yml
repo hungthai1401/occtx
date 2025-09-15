@@ -1,0 +1,235 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Run quality checks
+      run: |
+        echo "🔍 Running quality checks..."
+        
+        # Check formatting
+        unformatted=$(gofmt -s -l .)
+        if [ -n "$unformatted" ]; then
+          echo "❌ Code is not properly formatted:"
+          echo "$unformatted"
+          exit 1
+        fi
+        echo "✅ Go formatting check passed"
+        
+        # Run go vet
+        echo "🔍 Running go vet..."
+        go vet ./...
+        echo "✅ go vet passed"
+        
+        # Run tests
+        echo "🔍 Running tests..."
+        go test ./...
+        echo "✅ Tests passed"
+        
+        # Build
+        echo "🔍 Building..."
+        go build -v ./...
+        echo "✅ Build successful"
+
+    - name: Calculate version
+      id: version
+      run: |
+        # Get current version from tags
+        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "Current version: $CURRENT_VERSION"
+        
+        # Parse current version
+        if [[ $CURRENT_VERSION =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          MAJOR=${BASH_REMATCH[1]}
+          MINOR=${BASH_REMATCH[2]}
+          PATCH=${BASH_REMATCH[3]}
+        else
+          echo "⚠️ Could not parse current version, starting from v0.1.0"
+          MAJOR=0
+          MINOR=1
+          PATCH=0
+        fi
+        
+        # Calculate new version based on input
+        case "${{ github.event.inputs.release_type }}" in
+          patch)
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+            ;;
+          minor)
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="v${MAJOR}.${NEW_MINOR}.0"
+            ;;
+          major)
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_VERSION="v${NEW_MAJOR}.0.0"
+            ;;
+        esac
+        
+        echo "New version: $NEW_VERSION"
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create and push tag
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+        git push origin "${{ steps.version.outputs.tag }}"
+
+  build:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
+    needs: [prepare-release]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            artifact: occtx-linux-x86_64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            artifact: occtx-linux-x86_64-musl
+            cgo: 0
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            artifact: occtx-windows-x86_64.exe
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            artifact: occtx-macos-x86_64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            artifact: occtx-macos-aarch64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Build release binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: ${{ matrix.cgo || 1 }}
+      run: |
+        go build -ldflags="-s -w" -o ${{ matrix.artifact }} .
+
+    - name: Strip binary (Unix)
+      if: matrix.os != 'windows-latest' && matrix.cgo != '0'
+      run: strip ${{ matrix.artifact }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: ${{ matrix.artifact }}
+
+  release:
+    name: Create Release
+    needs: [prepare-release, build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.prepare-release.outputs.version }}
+        files: |
+          occtx-linux-x86_64/occtx-linux-x86_64
+          occtx-linux-x86_64-musl/occtx-linux-x86_64-musl
+          occtx-windows-x86_64.exe/occtx-windows-x86_64.exe
+          occtx-macos-x86_64/occtx-macos-x86_64
+          occtx-macos-aarch64/occtx-macos-aarch64
+        body: |
+          ## occtx ${{ needs.prepare-release.outputs.version }}
+          
+          🚀 **Release Type**: ${{ github.event.inputs.release_type }}
+          
+          Fast, secure, and intuitive command-line tool for managing multiple opencode configurations.
+          
+          ### Installation
+          
+          Download the appropriate binary for your platform:
+          - **Linux (x86_64)**: `occtx-linux-x86_64` 
+          - **Linux (x86_64, static)**: `occtx-linux-x86_64-musl`
+          - **Windows (x86_64)**: `occtx-windows-x86_64.exe`
+          - **macOS (Intel)**: `occtx-macos-x86_64`
+          - **macOS (Apple Silicon)**: `occtx-macos-aarch64`
+          
+          Make the binary executable and place it in your PATH:
+          ```bash
+          chmod +x occtx-*
+          sudo mv occtx-* /usr/local/bin/occtx
+          ```
+          
+          ### Usage
+          
+          ```bash
+          # List contexts
+          occtx
+          
+          # Switch to a context
+          occtx work
+          
+          # Create new context
+          occtx -n personal
+          
+          # Switch to previous context
+          occtx -
+          ```
+          
+          See the [README](https://github.com/hungthai1401/occtx) for more details.
+        draft: false
+        prerelease: false
