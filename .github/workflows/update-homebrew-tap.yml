@@ -1,0 +1,124 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout main repository
+      uses: actions/checkout@v4
+
+    - name: Extract or set version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v$VERSION"
+          echo "🔧 Manual trigger with version: $VERSION"
+        else
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "🚀 Release trigger with version: $VERSION"
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        
+        echo "Version: $VERSION"
+        echo "Tag: $TAG"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Update Homebrew formula using Node.js script
+      run: |
+        # Configure git for the script
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Clone homebrew-tap repository with authentication
+        git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/hungthai1401/homebrew-tap.git homebrew-tap
+        
+        # Run the Node.js update script
+        echo "🚀 Updating Homebrew formula..."
+        node .github/workflows/scripts/update-homebrew.js ${{ steps.version.outputs.version }}
+      env:
+        OCCTX_VERSION: ${{ steps.version.outputs.version }}
+
+    - name: Verify formula was updated
+      run: |
+        echo "🔍 Verifying formula update was successful..."
+        
+        if [ -f "homebrew-tap/Formula/occtx.rb" ]; then
+          echo "✅ Formula file exists"
+          
+          # Check if version was updated
+          if grep -q "version \"${{ steps.version.outputs.version }}\"" homebrew-tap/Formula/occtx.rb; then
+            echo "✅ Version updated successfully"
+          else
+            echo "❌ Version was not updated"
+            exit 1
+          fi
+          
+          # Basic syntax check if Ruby is available
+          if command -v ruby >/dev/null 2>&1; then
+            echo "🔍 Running Ruby syntax check..."
+            if ruby -c homebrew-tap/Formula/occtx.rb 2>/dev/null; then
+              echo "✅ Ruby syntax check passed"
+            else
+              echo "❌ Ruby syntax check failed"
+              echo "📄 Formula content for debugging:"
+              cat homebrew-tap/Formula/occtx.rb
+              exit 1
+            fi
+          else
+            echo "⚠️ Ruby not available, skipping syntax check"
+            echo "📝 Note: Formula syntax will be validated when users install via Homebrew"
+            echo "🔍 Basic file validation..."
+            
+            # Basic validation without Ruby
+            if grep -q "class Occtx < Formula" homebrew-tap/Formula/occtx.rb; then
+              echo "✅ Formula class definition found"
+            else
+              echo "❌ Formula class definition not found"
+              exit 1
+            fi
+            
+            if grep -q "def install" homebrew-tap/Formula/occtx.rb; then
+              echo "✅ Install method found"
+            else
+              echo "❌ Install method not found"
+              exit 1
+            fi
+            
+            if grep -q "sha256" homebrew-tap/Formula/occtx.rb; then
+              echo "✅ SHA256 hashes found"
+            else
+              echo "❌ SHA256 hashes not found"
+              exit 1
+            fi
+            
+            echo "✅ Basic formula validation passed"
+          fi
+          
+          echo "📄 Final formula content:"
+          cat homebrew-tap/Formula/occtx.rb
+        else
+          echo "❌ Formula file not found"
+          exit 1
+        fi
