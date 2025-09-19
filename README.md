@@ -20,6 +20,22 @@ Inspired by [kubectx](https://github.com/ahmetb/kubectx) and [cctx](https://gith
 
 ## Installation
 
+### Using Homebrew (Recommended)
+
+```bash
+# Add the tap
+brew tap hungthai1401/tap
+
+# Install occtx
+brew install hungthai1401/tap/occtx
+```
+
+To update:
+```bash
+brew update
+brew upgrade hungthai1401/tap/occtx
+```
+
 ### From source
 
 ```bash
