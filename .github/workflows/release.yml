@@ -130,10 +130,12 @@ jobs:
             goos: linux
             goarch: amd64
             artifact: occtx-linux-x86_64
+            cgo: 0
           - os: ubuntu-latest
             goos: linux
             goarch: arm64
             artifact: occtx-linux-aarch64
+            cgo: 0
           - os: windows-latest
             goos: windows
             goarch: amd64
