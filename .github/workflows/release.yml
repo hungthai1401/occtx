@@ -132,9 +132,8 @@ jobs:
             artifact: occtx-linux-x86_64
           - os: ubuntu-latest
             goos: linux
-            goarch: amd64
-            artifact: occtx-linux-x86_64-musl
-            cgo: 0
+            goarch: arm64
+            artifact: occtx-linux-aarch64
           - os: windows-latest
             goos: windows
             goarch: amd64
@@ -200,7 +199,7 @@ jobs:
         tag_name: ${{ needs.prepare-release.outputs.version }}
         files: |
           occtx-linux-x86_64/occtx-linux-x86_64
-          occtx-linux-x86_64-musl/occtx-linux-x86_64-musl
+          occtx-linux-aarch64/occtx-linux-aarch64
           occtx-windows-x86_64.exe/occtx-windows-x86_64.exe
           occtx-macos-x86_64/occtx-macos-x86_64
           occtx-macos-aarch64/occtx-macos-aarch64
@@ -213,7 +212,7 @@ jobs:
           
           Download the appropriate binary for your platform:
           - **Linux (x86_64)**: `occtx-linux-x86_64` 
-          - **Linux (x86_64, static)**: `occtx-linux-x86_64-musl`
+          - **Linux (ARM64)**: `occtx-linux-aarch64`
           - **Windows (x86_64)**: `occtx-windows-x86_64.exe`
           - **macOS (Intel)**: `occtx-macos-x86_64`
           - **macOS (Apple Silicon)**: `occtx-macos-aarch64`
