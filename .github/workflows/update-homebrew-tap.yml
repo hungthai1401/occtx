@@ -59,6 +59,7 @@ jobs:
         node .github/workflows/scripts/update-homebrew.js ${{ steps.version.outputs.version }}
       env:
         OCCTX_VERSION: ${{ steps.version.outputs.version }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Verify formula was updated
       run: |

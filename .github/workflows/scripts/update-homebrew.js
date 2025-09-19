@@ -214,6 +214,11 @@ async function updateHomebrew(version) {
 Auto-updated by GitHub Actions`;
 
     execSync(`git commit -m "${commitMessage}"`, { cwd: homebrewPath });
+    // Push using the token if available (for GitHub Actions)
+    const token = process.env.GITHUB_TOKEN;
+    if (token) {
+      execSync(`git remote set-url origin https://${token}@github.com/hungthai1401/homebrew-tap.git`, { cwd: homebrewPath });
+    }
     execSync("git push origin main", { cwd: homebrewPath });
     console.log("✅ Pushed to homebrew-tap repository");
   } catch (error) {
