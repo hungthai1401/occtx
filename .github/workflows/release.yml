@@ -171,7 +171,7 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: ${{ matrix.cgo || 1 }}
+        CGO_ENABLED: ${{ matrix.cgo == 0 && '0' || '1' }}
       run: |
         go build -ldflags="-s -w" -o ${{ matrix.artifact }} .
 
