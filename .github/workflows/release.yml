@@ -254,3 +254,20 @@ jobs:
           See the [README](https://github.com/hungthai1401/occtx) for more details.
         draft: false
         prerelease: false
+
+  trigger-homebrew-update:
+    name: Trigger Homebrew Tap Update
+    needs: [prepare-release, release]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger Homebrew Tap Update
+      uses: peter-evans/repository-dispatch@v3
+      with:
+        token: ${{ secrets.PAT }}
+        repository: hungthai1401/occtx
+        event-type: update-homebrew
+        client-payload: |
+          {
+            "version": "${{ needs.prepare-release.outputs.version }}",
+            "tag": "${{ needs.prepare-release.outputs.tag }}"
+          }

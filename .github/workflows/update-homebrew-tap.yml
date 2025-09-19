@@ -1,8 +1,8 @@
 name: Update Homebrew Tap
 
 on:
-  release:
-    types: [published]
+  repository_dispatch:
+    types: [update-homebrew]
   workflow_dispatch:
     inputs:
       version:
@@ -28,11 +28,17 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           TAG="v$VERSION"
           echo "🔧 Manual trigger with version: $VERSION"
+        elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+          VERSION="${{ github.event.client_payload.version }}"
+          TAG="${{ github.event.client_payload.tag }}"
+          echo "🤖 Repository dispatch trigger with version: $VERSION"
         else
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "🚀 Release trigger with version: $VERSION"
+          echo "❌ Unsupported event type: ${{ github.event_name }}"
+          exit 1
         fi
+        
+        # Remove 'v' prefix from version if present
+        VERSION="${VERSION#v}"
         
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "tag=$TAG" >> $GITHUB_OUTPUT
