@@ -45,31 +45,29 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Update Homebrew formula using Node.js script
+    - name: Clone Homebrew tap repository
       run: |
-        # Configure git for the script
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
         # Clone homebrew-tap repository with authentication
-        git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/hungthai1401/homebrew-tap.git homebrew-tap
+        git clone https://${{ secrets.PAT }}@github.com/hungthai1401/homebrew-tap.git homebrew-tap
         
-        # Run the Node.js update script
-        echo "🚀 Updating Homebrew formula..."
-        node .github/workflows/scripts/update-homebrew.js ${{ steps.version.outputs.version }}
+    - name: Generate Homebrew formula using Node.js script
+      run: |
+        # Run the Node.js script to generate the formula file
+        echo "🚀 Generating Homebrew formula..."
+        node .github/workflows/scripts/generate-homebrew.js ${{ steps.version.outputs.version }}
       env:
         OCCTX_VERSION: ${{ steps.version.outputs.version }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Verify formula was updated
       run: |
         echo "🔍 Verifying formula update was successful..."
+        cd homebrew-tap
         
-        if [ -f "homebrew-tap/Formula/occtx.rb" ]; then
+        if [ -f "Formula/occtx.rb" ]; then
           echo "✅ Formula file exists"
           
           # Check if version was updated
-          if grep -q "version \"${{ steps.version.outputs.version }}\"" homebrew-tap/Formula/occtx.rb; then
+          if grep -q "version \"${{ steps.version.outputs.version }}\"" Formula/occtx.rb; then
             echo "✅ Version updated successfully"
           else
             echo "❌ Version was not updated"
@@ -79,12 +77,12 @@ jobs:
           # Basic syntax check if Ruby is available
           if command -v ruby >/dev/null 2>&1; then
             echo "🔍 Running Ruby syntax check..."
-            if ruby -c homebrew-tap/Formula/occtx.rb 2>/dev/null; then
+            if ruby -c Formula/occtx.rb 2>/dev/null; then
               echo "✅ Ruby syntax check passed"
             else
               echo "❌ Ruby syntax check failed"
               echo "📄 Formula content for debugging:"
-              cat homebrew-tap/Formula/occtx.rb
+              cat Formula/occtx.rb
               exit 1
             fi
           else
@@ -93,21 +91,21 @@ jobs:
             echo "🔍 Basic file validation..."
             
             # Basic validation without Ruby
-            if grep -q "class Occtx < Formula" homebrew-tap/Formula/occtx.rb; then
+            if grep -q "class Occtx < Formula" Formula/occtx.rb; then
               echo "✅ Formula class definition found"
             else
               echo "❌ Formula class definition not found"
               exit 1
             fi
             
-            if grep -q "def install" homebrew-tap/Formula/occtx.rb; then
+            if grep -q "def install" Formula/occtx.rb; then
               echo "✅ Install method found"
             else
               echo "❌ Install method not found"
               exit 1
             fi
             
-            if grep -q "sha256" homebrew-tap/Formula/occtx.rb; then
+            if grep -q "sha256" Formula/occtx.rb; then
               echo "✅ SHA256 hashes found"
             else
               echo "❌ SHA256 hashes not found"
@@ -118,8 +116,44 @@ jobs:
           fi
           
           echo "📄 Final formula content:"
-          cat homebrew-tap/Formula/occtx.rb
+          cat Formula/occtx.rb
         else
           echo "❌ Formula file not found"
           exit 1
         fi
+
+    - name: Commit and push changes to Homebrew tap
+      run: |
+        cd homebrew-tap
+
+        # Set the remote URL with the token
+        git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/hungthai1401/homebrew-tap.git
+        
+        # Configure git
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Check if there are changes to commit
+        if git diff --quiet; then
+          echo "ℹ️  No changes to commit"
+          exit 0
+        fi
+        
+        # Add changes
+        git add .
+        
+        # Create commit message with version details
+        cat > commit_message.txt << EOF
+        Update occtx to version ${{ steps.version.outputs.version }}
+
+        - Version: ${{ steps.version.outputs.version }}
+        - Release: https://github.com/hungthai1401/occtx/releases/tag/v${{ steps.version.outputs.version }}
+        
+        Auto-updated by GitHub Actions
+        EOF
+        
+        # Commit and push
+        git commit -F commit_message.txt
+        git push origin main
+        
+        echo "✅ Successfully pushed changes to homebrew-tap repository"

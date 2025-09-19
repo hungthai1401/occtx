@@ -6,11 +6,11 @@ const { join } = require("path");
 const { createHash } = require("crypto");
 
 /**
- * Update Homebrew formula with new version and checksums
+ * Generate Homebrew formula with new version and checksums
  * @param {string} version - Version string (e.g., "0.1.0")
  */
-async function updateHomebrew(version) {
-  console.log(`🍺 Updating Homebrew formula to v${version}...`);
+async function generateHomebrew(version) {
+  console.log(`🍺 Generating Homebrew formula for v${version}...`);
 
   // Validate version format
   if (!/^\d+\.\d+\.\d+$/.test(version)) {
@@ -170,63 +170,20 @@ async function updateHomebrew(version) {
 
   // Write updated formula
   writeFileSync(formulaPath, updatedFormula);
-  console.log("✅ Updated Formula/occtx.rb");
+  console.log("✅ Generated Formula/occtx.rb");
 
   // Show the updated content
-  console.log("\n📄 Updated formula content:");
+  console.log("\n📄 Generated formula content:");
   console.log("=" .repeat(50));
   console.log(updatedFormula);
   console.log("=" .repeat(50));
 
-  // Commit and push to homebrew-tap
-  console.log("\n🚀 Committing and pushing changes...");
-  try {
-    // Configure git if needed
-    try {
-      execSync('git config user.name', { cwd: homebrewPath, stdio: 'pipe' });
-    } catch {
-      execSync('git config user.name "GitHub Actions"', { cwd: homebrewPath });
-      execSync('git config user.email "actions@github.com"', { cwd: homebrewPath });
-    }
+  // File generation completed - commit/push will be handled by GitHub Actions
+  console.log("\n✅ Formula file generated successfully!");
+  console.log("📝 Changes are ready for commit by GitHub Actions");
 
-    // Add changes
-    execSync("git add .", { cwd: homebrewPath });
-    
-    // Check if there are changes to commit
-    try {
-      execSync("git diff --cached --exit-code", { cwd: homebrewPath, stdio: 'pipe' });
-      console.log("ℹ️  No changes to commit");
-      return;
-    } catch {
-      // There are changes, continue with commit
-    }
-
-    // Commit with detailed message
-    const commitMessage = `Update occtx to version ${version}
-
-- Version: ${version}
-- macOS ARM64: ${checksums['macos-aarch64']}
-- macOS x86_64: ${checksums['macos-x86_64']}  
-- Linux ARM64: ${checksums['linux-aarch64']}
-- Linux x86_64: ${checksums['linux-x86_64']}
-- Release: https://github.com/hungthai1401/occtx/releases/tag/v${version}
-
-Auto-updated by GitHub Actions`;
-
-    execSync(`git commit -m "${commitMessage}"`, { cwd: homebrewPath });
-    // Push using the token if available (for GitHub Actions)
-    const token = process.env.GITHUB_TOKEN;
-    if (token) {
-      execSync(`git remote set-url origin https://${token}@github.com/hungthai1401/homebrew-tap.git`, { cwd: homebrewPath });
-    }
-    execSync("git push origin main", { cwd: homebrewPath });
-    console.log("✅ Pushed to homebrew-tap repository");
-  } catch (error) {
-    console.error("❌ Failed to update homebrew-tap:", error.message);
-    process.exit(1);
-  }
-
-  console.log(`\n🍺 Homebrew formula updated to v${version} successfully! 🎉`);
+  console.log(`\n🍺 Homebrew formula generated for v${version} successfully! 🎉`);
+  console.log("📝 GitHub Actions will now commit and push the changes.");
   
   // Summary
   console.log("\n📊 Summary:");
@@ -238,7 +195,7 @@ Auto-updated by GitHub Actions`;
 }
 
 // Export for use in other scripts
-module.exports = { updateHomebrew };
+module.exports = { generateHomebrew };
 
 // Allow direct execution
 if (require.main === module) {
@@ -247,16 +204,16 @@ if (require.main === module) {
     console.error("❌ Version is required!");
     console.error("");
     console.error("Usage:");
-    console.error("  node .github/workflows/scripts/update-homebrew.js <version>");
-    console.error("  OCCTX_VERSION=1.0.0 node .github/workflows/scripts/update-homebrew.js");
+    console.error("  node .github/workflows/scripts/generate-homebrew.js <version>");
+    console.error("  OCCTX_VERSION=1.0.0 node .github/workflows/scripts/generate-homebrew.js");
     console.error("");
     console.error("Examples:");
-    console.error("  node .github/workflows/scripts/update-homebrew.js 1.0.0");
-    console.error("  OCCTX_VERSION=1.0.0 node .github/workflows/scripts/update-homebrew.js");
+    console.error("  node .github/workflows/scripts/generate-homebrew.js 1.0.0");
+    console.error("  OCCTX_VERSION=1.0.0 node .github/workflows/scripts/generate-homebrew.js");
     process.exit(1);
   }
   
-  updateHomebrew(version).catch((error) => {
+  generateHomebrew(version).catch((error) => {
     console.error("❌ Script failed:", error.message);
     process.exit(1);
   });
